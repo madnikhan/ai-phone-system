@@ -151,9 +151,27 @@ npm start
 npm run lint
 ```
 
+## Database Integration
+
+The system supports **Supabase PostgreSQL** for persistent storage:
+
+- **Automatic Fallback**: If Supabase is not configured, the system automatically uses localStorage
+- **Production Ready**: Full database integration with optimized queries
+- **Easy Setup**: See `SUPABASE_SETUP.md` for detailed setup instructions
+
+### Quick Setup
+
+1. Create a Supabase project at [supabase.com](https://supabase.com)
+2. Run the migration in `supabase/migrations/001_create_calls_table.sql`
+3. Add environment variables:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+   ```
+
 ## Notes
 
-- The demo uses browser localStorage to persist call history
+- The demo uses browser localStorage by default (fallback if Supabase not configured)
 - Speech recognition requires microphone permissions
 - Some browsers may have limited Web Speech API support
 - The demo is optimized for Chrome/Edge browsers
