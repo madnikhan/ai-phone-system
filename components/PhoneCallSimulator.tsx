@@ -237,6 +237,13 @@ export default function PhoneCallSimulator({ onCallComplete }: PhoneCallSimulato
           )
         : null
       
+      const outcome: 'scheduled' | 'follow_up' | 'escalated' | 'no_show' = 
+        callState.leadInfo.appointmentDate 
+          ? 'scheduled' 
+          : callState.stage === 'escalation' 
+            ? 'escalated' 
+            : 'follow_up'
+
       const callRecord = {
         id: `call-${Date.now()}`,
         timestamp: callStartTime.current,
@@ -248,11 +255,7 @@ export default function PhoneCallSimulator({ onCallComplete }: PhoneCallSimulato
         escalated: callState.stage === 'escalation',
         leadInfo: callState.leadInfo,
         conversationHistory: callState.conversationHistory,
-        outcome: callState.leadInfo.appointmentDate 
-          ? 'scheduled' 
-          : callState.stage === 'escalation' 
-            ? 'escalated' 
-            : 'follow_up',
+        outcome,
       }
 
       callManager.current.saveCall(callRecord)
