@@ -15,10 +15,11 @@ export class SpeechToText {
         (window as any).SpeechRecognition
       
       if (SpeechRecognitionConstructor) {
-        this.recognition = new SpeechRecognitionConstructor()
-        this.recognition.continuous = true
-        this.recognition.interimResults = true
-        this.recognition.lang = 'en-US'
+        const recognitionInstance = new SpeechRecognitionConstructor()
+        recognitionInstance.continuous = true
+        recognitionInstance.interimResults = true
+        recognitionInstance.lang = 'en-US'
+        this.recognition = recognitionInstance
       }
     }
   }
@@ -139,8 +140,10 @@ export class TextToSpeech {
 
     // Add pause before starting to speak for more natural flow
     setTimeout(() => {
-      this.currentUtterance = utterance
-      this.synth.speak(utterance)
+      if (this.synth) {
+        this.currentUtterance = utterance
+        this.synth.speak(utterance)
+      }
     }, 100) // 100ms pause before speaking
   }
 

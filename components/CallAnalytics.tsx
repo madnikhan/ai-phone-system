@@ -13,11 +13,11 @@ export default function CallAnalytics({ callHistory: externalHistory }: CallAnal
   const callManager = new CallManager()
 
   useEffect(() => {
-    const loadCalls = () => {
+    const loadCalls = async () => {
       if (externalHistory && externalHistory.length > 0) {
         setCallHistory(externalHistory)
       } else {
-        const calls = callManager.getAllCalls()
+        const calls = await callManager.getAllCalls()
         setCallHistory(calls)
       }
     }
@@ -29,7 +29,26 @@ export default function CallAnalytics({ callHistory: externalHistory }: CallAnal
     return () => clearInterval(interval)
   }, [externalHistory])
 
-  const stats = callManager.getCallStats()
+  const [stats, setStats] = useState({
+    total: 0,
+    emergencies: 0,
+    criticalEmergencies: 0,
+    escalated: 0,
+    scheduled: 0,
+    avgDuration: 0,
+    avgEmergencyConfidence: 0,
+  })
+
+  useEffect(() => {
+    const loadStats = async () => {
+      const callStats = await callManager.getCallStats()
+      setStats(callStats)
+    }
+    loadStats()
+    
+    const interval = setInterval(loadStats, 5000)
+    return () => clearInterval(interval)
+  }, [])
   const emergencyCalls = callHistory.filter(call => call.emergency || call.emergencyDetected)
   const criticalEmergencies = callHistory.filter(
     call => call.emergencySeverity === 'critical' || (call.emergencyConfidence && call.emergencyConfidence > 0.8)

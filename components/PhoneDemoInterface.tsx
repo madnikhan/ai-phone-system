@@ -11,15 +11,26 @@ export default function PhoneDemoInterface() {
   const [callHistory, setCallHistory] = useState<any[]>([])
 
   useEffect(() => {
-    // Load call history from localStorage
-    try {
-      const saved = localStorage.getItem('callRecords')
-      if (saved) {
-        setCallHistory(JSON.parse(saved))
+    // Load call history (will try database first, then localStorage)
+    const loadCalls = async () => {
+      try {
+        const callManager = new (await import('@/lib/call-manager')).CallManager()
+        const calls = await callManager.getAllCalls()
+        setCallHistory(calls)
+      } catch (error) {
+        console.error('Failed to load call history:', error)
+        // Fallback to localStorage
+        try {
+          const saved = localStorage.getItem('callRecords')
+          if (saved) {
+            setCallHistory(JSON.parse(saved))
+          }
+        } catch (e) {
+          console.error('Failed to load from localStorage:', e)
+        }
       }
-    } catch (error) {
-      console.error('Failed to load call history:', error)
     }
+    loadCalls()
   }, [])
 
   const handleCallComplete = (callData: any) => {

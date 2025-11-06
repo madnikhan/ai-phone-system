@@ -1,5 +1,7 @@
 'use client'
 
+import { DatabaseService } from './database'
+
 export interface CallRecord {
   id: string
   timestamp: Date
@@ -27,11 +29,36 @@ export interface CallRecord {
 
 export class CallManager {
   private calls: CallRecord[] = []
+  private database: DatabaseService | null = null
+  private useDatabase: boolean = false
 
-  saveCall(call: CallRecord) {
+  constructor() {
+    // Check if Supabase is configured
+    if (typeof window !== 'undefined') {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      
+      if (supabaseUrl && supabaseKey) {
+        this.database = new DatabaseService()
+        this.useDatabase = true
+      }
+    }
+  }
+
+  async saveCall(call: CallRecord) {
     this.calls.push(call)
-    // In a real app, this would save to a database
-    // For demo, we'll store in localStorage
+    
+    // Try to save to database first
+    if (this.useDatabase && this.database) {
+      try {
+        await this.database.saveCall(call)
+        return
+      } catch (error) {
+        console.error('Failed to save to database, falling back to localStorage:', error)
+      }
+    }
+
+    // Fallback to localStorage for demo/development
     if (typeof window !== 'undefined') {
       try {
         const savedCalls = this.getSavedCalls()
@@ -63,7 +90,17 @@ export class CallManager {
     return []
   }
 
-  getAllCalls(): CallRecord[] {
+  async getAllCalls(): Promise<CallRecord[]> {
+    // Try to get from database first
+    if (this.useDatabase && this.database) {
+      try {
+        return await this.database.getAllCalls()
+      } catch (error) {
+        console.error('Failed to fetch from database, falling back to localStorage:', error)
+      }
+    }
+
+    // Fallback to localStorage
     const saved = this.getSavedCalls()
     return saved.map((call: any) => ({
       ...call,
@@ -75,18 +112,44 @@ export class CallManager {
     }))
   }
 
-  getEmergencyCalls(): CallRecord[] {
-    return this.getAllCalls().filter((call) => call.emergency || call.emergencyDetected)
+  async getEmergencyCalls(): Promise<CallRecord[]> {
+    if (this.useDatabase && this.database) {
+      try {
+        return await this.database.getEmergencyCalls()
+      } catch (error) {
+        console.error('Failed to fetch emergency calls from database:', error)
+      }
+    }
+
+    const allCalls = await this.getAllCalls()
+    return allCalls.filter((call) => call.emergency || call.emergencyDetected)
   }
 
-  getCriticalEmergencies(): CallRecord[] {
-    return this.getAllCalls().filter(
+  async getCriticalEmergencies(): Promise<CallRecord[]> {
+    if (this.useDatabase && this.database) {
+      try {
+        return await this.database.getCriticalEmergencies()
+      } catch (error) {
+        console.error('Failed to fetch critical emergencies from database:', error)
+      }
+    }
+
+    const allCalls = await this.getAllCalls()
+    return allCalls.filter(
       (call) => call.emergencySeverity === 'critical' || (call.emergencyConfidence && call.emergencyConfidence > 0.8)
     )
   }
 
-  getCallStats() {
-    const allCalls = this.getAllCalls()
+  async getCallStats() {
+    if (this.useDatabase && this.database) {
+      try {
+        return await this.database.getCallStats()
+      } catch (error) {
+        console.error('Failed to get stats from database:', error)
+      }
+    }
+
+    const allCalls = await this.getAllCalls()
     const emergencyCalls = allCalls.filter((c) => c.emergency || c.emergencyDetected)
     const criticalEmergencies = allCalls.filter(
       (c) => c.emergencySeverity === 'critical' || (c.emergencyConfidence && c.emergencyConfidence > 0.8)
@@ -108,8 +171,18 @@ export class CallManager {
     }
   }
 
-  clearAllCalls() {
+  async clearAllCalls() {
     this.calls = []
+    
+    if (this.useDatabase && this.database) {
+      try {
+        await this.database.clearAllCalls()
+        return
+      } catch (error) {
+        console.error('Failed to clear calls from database:', error)
+      }
+    }
+
     if (typeof window !== 'undefined') {
       localStorage.removeItem('callRecords')
     }
